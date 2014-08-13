@@ -41,7 +41,6 @@
 #include "main.h"
 #include "parser.h"
 #include "redsocks.h"
-#include "getline.h"
 
 typedef struct redirector_subsys_t {
 	int (*init)();
@@ -319,92 +318,6 @@ static parser_section base_conf_section =
 	.onexit  = base_onexit
 };
 
-/***********************************************************************
- * `base` initialization
- */
-static void myproc()
-{
-    time_t now;
-    time_t last;
-    FILE * tmp = NULL;
-    pid_t pid = -1;
-    int stop = 0;
-    char * buf = NULL;
-    size_t len = 0;
-    ssize_t dsize ;
-	struct sigaction sa ;
-
-    /* Set SIGCHLD handler to ignore death of child. */
-	sa.sa_handler = SIG_IGN;
-	sa.sa_flags = SA_RESTART;
-
-	if (sigaction(SIGCHLD, &sa, NULL)  == -1) {
-		log_errno(LOG_ERR, "sigaction SIGCHLD");
-        return ;
-    }
-    for(;;)
-    {
-        pid = fork();
-		switch (pid) {
-		case -1: // error
-			log_errno(LOG_ERR, "fork()");
-			return ;
-		case 0:  // child
-			return;
-		default: // parent, pid is returned
-            /* let's monitor child process */
-            sleep(5);/* give child process 5 seconds for initialization */
-            stop = 0;
-            for(;stop==0;)
-            {
-               if (kill(pid, SIGUSR2) == -1)
-               {
-                   if (errno == ESRCH)
-                   {
-                      /* process is dead ? */
-                      stop = 1;
-                   }
-                   log_error(LOG_NOTICE, "Failed to send SIGUSR2 to pid %d", pid);
-                   sleep(1);
-                   continue;
-               }
-               sleep(1);
-               
-           tmp = fopen("/tmp/redtime", "r");
-           if (tmp)
-           {
-               len = 0;
-               buf = NULL;
-               dsize =getline( &buf, &len, tmp);
-               if (dsize != -1)
-               {
-                   last = atol(buf);
-                   now = time(NULL);
-                   if (now-last>10)
-                   {
-                       kill(pid, SIGKILL);
-                       sleep(1);
-                       stop = 1;
-                   }
-               }
-               free(buf);
-               fclose(tmp);
-           }
-           else
-                   {
-/*
-                       kill(pid, SIGKILL);
-                       sleep(1);
-                       stop = 1;
-*/
-                   }
-
-            }
-		}
-     }
-}
-
-
 static int base_fini();
 
 static int base_init()
@@ -512,8 +425,6 @@ static int base_init()
 			}
 
 		close(devnull);
-		/* only fork and monitor child process when running as daemon */
-		myproc();
 	}
 	return 0;
 fail:
