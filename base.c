@@ -41,6 +41,7 @@
 #include "main.h"
 #include "parser.h"
 #include "redsocks.h"
+#include "getline.h"
 
 typedef struct redirector_subsys_t {
 	int (*init)();

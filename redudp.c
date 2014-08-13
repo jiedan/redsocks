@@ -15,7 +15,6 @@
  */
 
 #include <stdlib.h>
-#include <search.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -25,6 +24,7 @@
 #include <arpa/inet.h>
 #include <assert.h>
 
+#include "search.h"
 #include "list.h"
 #include "log.h"
 #include "socks5.h"
